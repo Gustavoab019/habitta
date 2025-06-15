@@ -1,9 +1,10 @@
 import React from 'react';
 import { X, Plus, Minus, ShoppingBag, Trash2 } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const CartSidebar = () => {
+  const navigate = useNavigate();
   const { 
     isOpen, 
     closeCart, 
@@ -22,6 +23,11 @@ const CartSidebar = () => {
       style: 'currency',
       currency: 'EUR'
     }).format(price);
+  };
+
+  const handleCheckout = () => {
+    closeCart();
+    navigate('/checkout');
   };
 
   return (
@@ -52,7 +58,7 @@ const CartSidebar = () => {
         </div>
 
         {/* Content */}
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full pb-20">
           
           {items.length === 0 ? (
             /* Empty Cart */
@@ -79,7 +85,7 @@ const CartSidebar = () => {
               {/* Cart Items */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 {items.map((item) => (
-                  <div key={item.id} className="flex space-x-4 pb-6 border-b border-stone-100 last:border-0">
+                  <div key={item.customId || item.id} className="flex space-x-4 pb-6 border-b border-stone-100 last:border-0">
                     
                     {/* Product Image */}
                     <div className="w-20 h-20 bg-stone-100 rounded overflow-hidden flex-shrink-0">
@@ -92,14 +98,21 @@ const CartSidebar = () => {
 
                     {/* Product Info */}
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-light text-stone-900 truncate mb-1">
+                      <h4 className="font-light text-stone-900 truncate mb-1 text-sm">
                         {item.name}
                       </h4>
-                      <p className="text-sm text-stone-500 font-light mb-2">
+                      {item.measurements && (
+                        <div className="text-xs text-stone-500 font-light mb-1">
+                          <span className="bg-stone-100 px-2 py-1 rounded">
+                            {item.measurements.width}×{item.measurements.height}cm
+                          </span>
+                        </div>
+                      )}
+                      <p className="text-xs text-stone-500 font-light mb-2">
                         {item.material}
                       </p>
-                      <p className="text-lg font-light text-stone-900">
-                        {formatPrice(item.price)}
+                      <p className="text-base font-medium text-stone-900">
+                        {formatPrice(item.calculatedPrice || item.price)}
                       </p>
                     </div>
 
@@ -108,7 +121,7 @@ const CartSidebar = () => {
                       
                       {/* Remove Button */}
                       <button
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => removeItem(item.customId || item.id)}
                         className="text-stone-400 hover:text-red-500 transition-colors duration-200"
                       >
                         <Trash2 className="w-4 h-4" strokeWidth={1} />
@@ -117,7 +130,7 @@ const CartSidebar = () => {
                       {/* Quantity */}
                       <div className="flex items-center space-x-2 border border-stone-300">
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.customId || item.id, item.quantity - 1)}
                           className="p-1 hover:bg-stone-100 transition-colors duration-200"
                           disabled={item.quantity <= 1}
                         >
@@ -127,7 +140,7 @@ const CartSidebar = () => {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.customId || item.id, item.quantity + 1)}
                           className="p-1 hover:bg-stone-100 transition-colors duration-200"
                         >
                           <Plus className="w-4 h-4 text-stone-600" strokeWidth={1} />
@@ -136,7 +149,7 @@ const CartSidebar = () => {
 
                       {/* Subtotal */}
                       <p className="text-sm font-light text-stone-600">
-                        {formatPrice(item.price * item.quantity)}
+                        {formatPrice((item.calculatedPrice || item.price) * item.quantity)}
                       </p>
                     </div>
                   </div>
@@ -144,7 +157,7 @@ const CartSidebar = () => {
               </div>
 
               {/* Footer */}
-              <div className="border-t border-stone-200 p-6 space-y-4">
+              <div className="border-t border-stone-200 p-6 space-y-4 bg-white">
                 
                 {/* Clear Cart */}
                 <button
@@ -157,7 +170,7 @@ const CartSidebar = () => {
                 {/* Total */}
                 <div className="flex justify-between items-center py-4 border-t border-stone-200">
                   <span className="text-lg font-light text-stone-900">Total:</span>
-                  <span className="text-2xl font-light text-stone-900">
+                  <span className="text-2xl font-medium text-stone-900">
                     {formatPrice(total)}
                   </span>
                 </div>
@@ -167,17 +180,20 @@ const CartSidebar = () => {
                   <Link
                     to="/produtos"
                     onClick={closeCart}
-                    className="block w-full text-center border border-stone-900 text-stone-900 py-3 font-light tracking-wide hover:bg-stone-900 hover:text-white transition-all duration-300"
+                    className="block w-full text-center border border-stone-900 text-stone-900 py-3 text-sm font-light tracking-wide hover:bg-stone-900 hover:text-white transition-all duration-300"
                   >
                     CONTINUAR A COMPRAR
                   </Link>
-                  <button className="w-full bg-stone-900 text-white py-3 font-light tracking-wide hover:bg-stone-800 transition-all duration-300">
+                  <button 
+                    onClick={handleCheckout}
+                    className="w-full bg-stone-900 text-white py-3 text-sm font-light tracking-wide hover:bg-stone-800 transition-all duration-300"
+                  >
                     FINALIZAR COMPRA
                   </button>
                 </div>
 
                 {/* Info */}
-                <p className="text-xs text-stone-500 text-center font-light">
+                <p className="text-xs text-stone-500 text-center font-light leading-relaxed">
                   Medição e instalação incluídas no preço
                 </p>
               </div>
