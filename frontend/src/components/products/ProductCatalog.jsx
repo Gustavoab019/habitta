@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, Heart, ShoppingBag } from 'lucide-react';
 import { useProducts } from '../../context/ProductContext';
 import { useCart } from '../../context/CartContext';
@@ -6,10 +6,19 @@ import { Link } from 'react-router-dom';
 
 const ProductCatalog = () => {
   const [selectedCategory, setSelectedCategory] = useState('todos');
-  const { products, categories, getProductsByCategory } = useProducts();
+  const { 
+    products, 
+    categories, 
+    getProductsByCategory, 
+    loading, 
+    error 
+  } = useProducts();
   const { addItem } = useCart();
 
-  const filteredProducts = getProductsByCategory(selectedCategory);
+  // Carregar produtos quando categoria muda
+  useEffect(() => {
+    getProductsByCategory(selectedCategory);
+  }, [selectedCategory]);
 
   const ProductCard = ({ product }) => (
     <div className="group cursor-pointer">
@@ -17,9 +26,12 @@ const ProductCatalog = () => {
       {/* Product Image */}
       <div className="relative overflow-hidden bg-stone-50 mb-8" style={{ aspectRatio: '4/5' }}>
         <img 
-          src={product.images?.[0] || product.image} 
+          src={product.images?.[0]?.url || product.image || product.mainImage} 
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          onError={(e) => {
+            e.target.src = 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=90';
+          }}
         />
         
         {/* Badges */}
@@ -79,7 +91,13 @@ const ProductCatalog = () => {
           </div>
           <div className="flex justify-between">
             <span className="text-stone-500 font-light">Medidas:</span>
-            <span className="text-stone-700 font-light">{product.dimensions}</span>
+            <span className="text-stone-700 font-light">
+              {/* Corrigir a renderização das dimensões */}
+              {product.dimensions && typeof product.dimensions === 'object' 
+                ? `${product.dimensions.maxWidth || 300}cm máx.`
+                : product.dimensions || 'Sob medida'
+              }
+            </span>
           </div>
         </div>
         
@@ -89,13 +107,51 @@ const ProductCatalog = () => {
               €{product.price}
             </span>
             <span className="text-xs text-stone-500 font-light tracking-widest">
-              /METRO
+              /{product.priceUnit || 'METRO'}
             </span>
           </div>
         </div>
       </div>
     </div>
   );
+
+  // Loading state
+  if (loading) {
+    return (
+      <section className="py-24 bg-stone-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-900 mx-auto mb-4"></div>
+            <p className="text-stone-600 font-light">Carregando produtos...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <section className="py-24 bg-stone-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="bg-red-50 border border-red-200 rounded p-6">
+              <h3 className="text-lg font-medium text-red-900 mb-2">
+                Erro ao carregar produtos
+              </h3>
+              <p className="text-red-700 mb-4">{error}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700 transition-colors"
+              >
+                Tentar Novamente
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-24 bg-stone-50">
@@ -132,11 +188,19 @@ const ProductCatalog = () => {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16 mb-16">
-          {filteredProducts.map(product => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {products.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16 mb-16">
+            {products.map(product => (
+              <ProductCard key={product._id || product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-stone-600 font-light text-lg">
+              Nenhum produto encontrado nesta categoria.
+            </p>
+          </div>
+        )}
 
         {/* Bottom CTA */}
         <div className="text-center">
