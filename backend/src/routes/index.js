@@ -3,6 +3,7 @@ import authRoutes from './auth.js';
 import productRoutes from './products.js';
 import orderRoutes from './orders.js';
 import userRoutes from './users.js';
+import adminOrderRoutes from './adminOrders.js';
 
 const router = express.Router();
 
@@ -17,6 +18,7 @@ router.get('/', (req, res) => {
       auth: '/api/auth',
       products: '/api/products',
       orders: '/api/orders',
+      adminOrders: '/api/admin/orders',
       users: '/api/users'
     }
   });
@@ -27,5 +29,6 @@ router.use('/auth', authRoutes);
 router.use('/products', productRoutes);
 router.use('/orders', orderRoutes);
 router.use('/users', userRoutes);
+router.use('/admin/orders', adminOrderRoutes);
 
 export default router;
