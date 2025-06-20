@@ -22,6 +22,7 @@ import NotFound from './pages/NotFound';
 import AdminOrders from './pages/AdminOrders';
 import Login from './pages/Login';
 
+
 // Componente para mostrar loading/erro global
 const AppError = ({ error }) => (
   <div className="min-h-screen bg-red-50 flex items-center justify-center">
