@@ -19,6 +19,7 @@ import Checkout from './pages/Checkout';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import NotFound from './pages/NotFound';
+import AdminOrders from './pages/AdminOrders';
 
 // Componente para mostrar loading/erro global
 const AppError = ({ error }) => (
@@ -68,6 +69,7 @@ function App() {
                   <Route path="/checkout" element={<Checkout />} />
                   <Route path="/sobre" element={<About />} />
                   <Route path="/contacto" element={<Contact />} />
+                  <Route path="/admin/pedidos" element={<AdminOrders />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
