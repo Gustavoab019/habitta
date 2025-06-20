@@ -42,6 +42,9 @@ const ProductDetail = () => {
       isMounted = false;
     };
   }, [id]); // getProductById is stable from context
+
+  }, [id, getProductById]);
+
   
   // Estados do produto
   const [selectedImage, setSelectedImage] = useState(0);
