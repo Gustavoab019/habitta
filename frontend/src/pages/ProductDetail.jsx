@@ -23,10 +23,25 @@ import MeasurementGuide from '../components/products/MeasurementGuide';
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getProductById } = useProducts();
+  const { getProductById, loading } = useProducts();
   const { addItem } = useCart();
-  
-  const product = getProductById(id);
+
+  const [product, setProduct] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchProduct = async () => {
+      const data = await getProductById(id);
+      if (isMounted) setProduct(data);
+    };
+
+    fetchProduct();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]); // getProductById is stable from context
   
   // Estados do produto
   const [selectedImage, setSelectedImage] = useState(0);
@@ -111,16 +126,20 @@ const ProductDetail = () => {
     setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length);
   };
 
-  // Se produto não encontrado
-  if (!product) {
+  if (loading || !product) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-light text-stone-900 mb-4">Produto não encontrado</h2>
-          <Link to="/produtos" className="text-stone-600 hover:text-stone-900">
-            ← Voltar aos produtos
-          </Link>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-stone-50">
+        {loading ? (
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-900 mx-auto mb-4"></div>
+            <p className="text-stone-600 font-light">Carregando produto...</p>
+          </div>
+        ) : (
+          <div className="text-center">
+            <h2 className="text-2xl font-light text-stone-900 mb-4">Produto não encontrado</h2>
+            <Link to="/produtos" className="text-stone-600 hover:text-stone-900">← Voltar aos produtos</Link>
+          </div>
+        )}
       </div>
     );
   }
