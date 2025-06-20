@@ -38,7 +38,7 @@ api.interceptors.response.use(
       localStorage.removeItem('habitta_user');
       window.location.href = '/login';
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -49,26 +49,26 @@ export const authAPI = {
   // Registar utilizador
   register: async (userData) => {
     const response = await api.post('/auth/register', userData);
-    
+
     // Guardar token e dados do utilizador
     if (response.data.token) {
       localStorage.setItem('habitta_token', response.data.token);
       localStorage.setItem('habitta_user', JSON.stringify(response.data.data.user));
     }
-    
+
     return response.data;
   },
 
   // Login
   login: async (credentials) => {
     const response = await api.post('/auth/login', credentials);
-    
+
     // Guardar token e dados do utilizador
     if (response.data.token) {
       localStorage.setItem('habitta_token', response.data.token);
       localStorage.setItem('habitta_user', JSON.stringify(response.data.data.user));
     }
-    
+
     return response.data;
   },
 
@@ -86,20 +86,20 @@ export const authAPI = {
   // Obter perfil atual
   getProfile: async () => {
     const response = await api.get('/auth/me');
-    
+
     // Atualizar dados do utilizador no localStorage
     localStorage.setItem('habitta_user', JSON.stringify(response.data.data.user));
-    
+
     return response.data;
   },
 
   // Atualizar perfil
   updateProfile: async (profileData) => {
     const response = await api.put('/auth/profile', profileData);
-    
+
     // Atualizar dados do utilizador no localStorage
     localStorage.setItem('habitta_user', JSON.stringify(response.data.data.user));
-    
+
     return response.data;
   },
 
