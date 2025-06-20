@@ -19,18 +19,18 @@ import Checkout from './pages/Checkout';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import NotFound from './pages/NotFound';
+import AdminOrders from './pages/AdminOrders';
+import Login from './pages/Login';
 
 // Componente para mostrar loading/erro global
 const AppError = ({ error }) => (
   <div className="min-h-screen bg-red-50 flex items-center justify-center">
     <div className="text-center p-8">
-      <h2 className="text-2xl font-light text-red-900 mb-4">
-        Erro de Conexão
-      </h2>
+      <h2 className="text-2xl font-light text-red-900 mb-4">Erro de Conexão</h2>
       <p className="text-red-700 mb-6">
         {error || 'Não foi possível conectar ao servidor. Verifique se o backend está a funcionar.'}
       </p>
-      <button 
+      <button
         onClick={() => window.location.reload()}
         className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700 transition-colors"
       >
@@ -68,6 +68,8 @@ function App() {
                   <Route path="/checkout" element={<Checkout />} />
                   <Route path="/sobre" element={<About />} />
                   <Route path="/contacto" element={<Contact />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/admin/pedidos" element={<AdminOrders />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
