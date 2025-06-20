@@ -182,6 +182,7 @@ export const ProductProvider = ({ children }) => {
   // Carregar produtos iniciais ao montar o componente
   useEffect(() => {
     fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Função para limpar cache (útil após updates administrativos)
@@ -208,13 +209,7 @@ export const ProductProvider = ({ children }) => {
     searchProducts,
     getPopularProducts,
     getInStockProducts,
-    clearCache,
-    
-    // Funções legacy (mantidas para compatibilidade)
-    getProductsByCategory: (category) => {
-      if (category === 'todos') return products;
-      return products.filter(product => product.category === category);
-    }
+    clearCache
   };
 
   return (
