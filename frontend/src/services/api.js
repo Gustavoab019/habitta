@@ -191,13 +191,16 @@ export const ordersAPI = {
 
   // Admin: Obter todos os pedidos
   getAllOrders: async (params = {}) => {
-    const response = await api.get('/orders', { params });
+    const response = await api.get('/admin/orders', { params });
     return response.data;
   },
 
   // Admin: Atualizar status do pedido
   updateOrderStatus: async (orderId, status, notes) => {
-    const response = await api.put(`/orders/${orderId}/status`, { status, notes });
+    const response = await api.put(`/admin/orders/${orderId}/status`, {
+      status,
+      notes
+    });
     return response.data;
   }
 };
