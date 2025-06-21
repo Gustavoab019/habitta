@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { productsAPI } from '../services/api';
 
 // Criar o contexto
@@ -28,6 +28,9 @@ export const ProductProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [categories] = useState(categoriesData);
+
+  // Cache em memória para detalhes de produtos
+  const productDetailsCache = useRef({});
 
   // Cache para evitar requests desnecessários
   const [cache, setCache] = useState({
@@ -76,13 +79,23 @@ export const ProductProvider = ({ children }) => {
   };
 
   // Função para buscar produto por ID/slug
-  const getProductById = async (identifier) => {
+  const getProductById = useCallback(async (identifier) => {
+    // Retornar do cache se já buscado anteriormente
+    if (productDetailsCache.current[identifier]) {
+      return productDetailsCache.current[identifier];
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       const response = await productsAPI.getProduct(identifier);
-      return response.data.product;
+      const product = response.data.product;
+
+      // Armazenar no cache para futuras chamadas
+      productDetailsCache.current[identifier] = product;
+
+      return product;
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Produto não encontrado';
       setError(errorMessage);
@@ -91,7 +104,7 @@ export const ProductProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Função para buscar produtos por categoria
   const getProductsByCategory = async (category) => {
