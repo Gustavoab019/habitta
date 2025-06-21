@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Eye, Heart, ShoppingBag } from 'lucide-react';
 import { useProducts } from '../../context/ProductContext';
 import { useCart } from '../../context/CartContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const ProductCatalog = () => {
   const [selectedCategory, setSelectedCategory] = useState('todos');
@@ -14,6 +14,7 @@ const ProductCatalog = () => {
     error 
   } = useProducts();
   const { addItem } = useCart();
+  const navigate = useNavigate();
 
   // Carregar produtos quando categoria muda
   useEffect(() => {
@@ -87,11 +88,11 @@ const ProductCatalog = () => {
               <button className="bg-white/95 backdrop-blur-sm p-3 hover:bg-white transition-all duration-300">
                 <Heart className="w-4 h-4" strokeWidth={1} />
               </button>
-              <button 
+              <button
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  addItem(product);
+                  navigate(`/produto/${product.slug || product._id || product.id}`);
                 }}
                 className="bg-white/95 backdrop-blur-sm p-3 hover:bg-white transition-all duration-300"
               >
