@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { productsAPI } from '../services/api';
 
@@ -80,6 +81,7 @@ export const ProductProvider = ({ children }) => {
 
   // Função para buscar produto por ID/slug
   const getProductById = useCallback(async (identifier) => {
+
     // Retornar do cache se já buscado anteriormente
     if (productDetailsCache.current[identifier]) {
       return productDetailsCache.current[identifier];
