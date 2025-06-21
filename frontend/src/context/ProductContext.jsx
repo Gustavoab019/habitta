@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { productsAPI } from '../services/api';
 
 // Criar o contexto
@@ -76,7 +76,7 @@ export const ProductProvider = ({ children }) => {
   };
 
   // Função para buscar produto por ID/slug
-  const getProductById = async (identifier) => {
+  const getProductById = useCallback(async (identifier) => {
     setLoading(true);
     setError(null);
 
@@ -91,7 +91,7 @@ export const ProductProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Função para buscar produtos por categoria
   const getProductsByCategory = async (category) => {
