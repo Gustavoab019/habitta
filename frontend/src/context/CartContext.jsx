@@ -206,9 +206,18 @@ export const CartProvider = ({ children }) => {
       },
       configuration: {
         color: item.configuration?.color || item.selectedColor || 'Padrão',
-        installationType: item.configuration?.installationType || 'professional',
-        mounting: item.configuration?.mounting || 'ceiling',
-        includeSheer: item.configuration?.includeSheer || false
+        installationType:
+          item.configuration?.installationType ||
+          item.measurements?.installationType ||
+          'professional',
+        mounting:
+          item.configuration?.mounting ||
+          item.measurements?.mounting ||
+          'ceiling',
+        includeSheer:
+          item.configuration?.includeSheer ??
+          item.measurements?.includeSheer ??
+          false
       },
       quantity: item.quantity || 1
     }));
