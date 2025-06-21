@@ -217,6 +217,9 @@ export const CartProvider = ({ children }) => {
         includeSheer:
           item.configuration?.includeSheer ??
           item.measurements?.includeSheer ??
+
+          item.measurements?.includeSheer ||
+
           false
       },
       quantity: item.quantity || 1

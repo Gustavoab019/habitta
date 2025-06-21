@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingBag } from 'lucide-react';
 import { useProducts } from '../../context/ProductContext';
+import { useCart } from '../../context/CartContext';
 import { Link, useNavigate } from 'react-router-dom';
 
 const ProductCatalog = () => {
@@ -12,6 +13,7 @@ const ProductCatalog = () => {
     loading, 
     error 
   } = useProducts();
+  const { addItem } = useCart();
   const navigate = useNavigate();
 
   // Carregar produtos quando categoria muda
