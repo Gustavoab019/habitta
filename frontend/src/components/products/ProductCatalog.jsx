@@ -18,7 +18,33 @@ const ProductCatalog = () => {
   // Carregar produtos quando categoria muda
   useEffect(() => {
     getProductsByCategory(selectedCategory);
-  }, [selectedCategory]);
+  }, [selectedCategory, getProductsByCategory]);
+
+  // Helper function to get product image URL safely
+  const getProductImageUrl = (product) => {
+    // First try to get from images array
+    if (product.images && product.images.length > 0) {
+      const firstImage = product.images[0];
+      // Handle both object format {url: string} and direct string format
+      if (typeof firstImage === 'object' && firstImage.url) {
+        return firstImage.url;
+      } else if (typeof firstImage === 'string') {
+        return firstImage;
+      }
+    }
+    
+    // Fallback to other image properties
+    if (product.image) {
+      return product.image;
+    }
+    
+    if (product.mainImage) {
+      return product.mainImage;
+    }
+    
+    // Final fallback to default image
+    return 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=90';
+  };
 
   const ProductCard = ({ product }) => (
     <div className="group cursor-pointer">
@@ -26,7 +52,7 @@ const ProductCatalog = () => {
       {/* Product Image */}
       <div className="relative overflow-hidden bg-stone-50 mb-8" style={{ aspectRatio: '4/5' }}>
         <img 
-          src={product.images?.[0]?.url || product.image || product.mainImage} 
+          src={getProductImageUrl(product)}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           onError={(e) => {
@@ -41,9 +67,11 @@ const ProductCatalog = () => {
               POPULAR
             </span>
           )}
-          <span className="bg-white/90 text-stone-900 text-xs tracking-wide px-3 py-2 font-light">
-            {product.hotelPartner}
-          </span>
+          {product.hotelPartner && (
+            <span className="bg-white/90 text-stone-900 text-xs tracking-wide px-3 py-2 font-light">
+              {product.hotelPartner}
+            </span>
+          )}
         </div>
 
         {/* Hover Actions */}
@@ -51,7 +79,7 @@ const ProductCatalog = () => {
           <div className="absolute bottom-6 left-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0">
             <div className="flex gap-3">
               <Link
-                to={`/produto/${product.slug || product.id}`}
+                to={`/produto/${product.slug || product._id || product.id}`}
                 className="flex-1 bg-white/95 backdrop-blur-sm text-black py-3 px-6 text-sm font-light tracking-wide hover:bg-white transition-all duration-300 text-center"
               >
                 VER DETALHES
@@ -60,7 +88,11 @@ const ProductCatalog = () => {
                 <Heart className="w-4 h-4" strokeWidth={1} />
               </button>
               <button 
-                onClick={() => addItem(product)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  addItem(product);
+                }}
                 className="bg-white/95 backdrop-blur-sm p-3 hover:bg-white transition-all duration-300"
               >
                 <ShoppingBag className="w-4 h-4" strokeWidth={1} />
@@ -73,13 +105,15 @@ const ProductCatalog = () => {
       {/* Product Info */}
       <div className="space-y-4">
         <div>
-          <p className="text-stone-500 text-sm font-light tracking-wide mb-2">
-            {product.hotelPartner}
-          </p>
+          {product.hotelPartner && (
+            <p className="text-stone-500 text-sm font-light tracking-wide mb-2">
+              {product.hotelPartner}
+            </p>
+          )}
           <h3 className="text-xl font-light text-stone-900 tracking-wide mb-3">
             {product.name}
           </h3>
-          <p className="text-stone-600 font-light leading-relaxed mb-4">
+          <p className="text-stone-600 font-light leading-relaxed mb-4 line-clamp-2">
             {product.description}
           </p>
         </div>
@@ -87,12 +121,11 @@ const ProductCatalog = () => {
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-stone-500 font-light">Material:</span>
-            <span className="text-stone-700 font-light">{product.material}</span>
+            <span className="text-stone-700 font-light">{product.material || 'Premium'}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-stone-500 font-light">Medidas:</span>
             <span className="text-stone-700 font-light">
-              {/* Corrigir a renderização das dimensões */}
               {product.dimensions && typeof product.dimensions === 'object' 
                 ? `${product.dimensions.maxWidth || 300}cm máx.`
                 : product.dimensions || 'Sob medida'
@@ -110,13 +143,23 @@ const ProductCatalog = () => {
               /{product.priceUnit || 'METRO'}
             </span>
           </div>
+          {product.originalPrice && product.originalPrice > product.price && (
+            <div className="flex items-center mt-2">
+              <span className="text-sm text-stone-400 line-through mr-2">
+                €{product.originalPrice}
+              </span>
+              <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded font-medium">
+                -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 
   // Loading state
-  if (loading) {
+  if (loading && !products.length) {
     return (
       <section className="py-24 bg-stone-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -135,7 +178,7 @@ const ProductCatalog = () => {
       <section className="py-24 bg-stone-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <div className="bg-red-50 border border-red-200 rounded p-6">
+            <div className="bg-red-50 border border-red-200 rounded p-6 max-w-md mx-auto">
               <h3 className="text-lg font-medium text-red-900 mb-2">
                 Erro ao carregar produtos
               </h3>
@@ -187,6 +230,16 @@ const ProductCatalog = () => {
           </nav>
         </div>
 
+        {/* Loading overlay for category changes */}
+        {loading && products.length > 0 && (
+          <div className="fixed inset-0 bg-white/50 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-stone-900 mx-auto mb-4"></div>
+              <p className="text-stone-600 font-light">Carregando categoria...</p>
+            </div>
+          </div>
+        )}
+
         {/* Products Grid */}
         {products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16 mb-16">
@@ -194,13 +247,27 @@ const ProductCatalog = () => {
               <ProductCard key={product._id || product.id} product={product} />
             ))}
           </div>
-        ) : (
+        ) : !loading ? (
           <div className="text-center py-12">
-            <p className="text-stone-600 font-light text-lg">
-              Nenhum produto encontrado nesta categoria.
-            </p>
+            <div className="bg-stone-100 rounded-lg p-8 max-w-md mx-auto">
+              <div className="text-stone-400 mb-4">
+                <ShoppingBag className="w-16 h-16 mx-auto" strokeWidth={1} />
+              </div>
+              <h3 className="text-lg font-light text-stone-900 mb-2">
+                Nenhum produto encontrado
+              </h3>
+              <p className="text-stone-600 font-light mb-4">
+                Não encontrámos produtos nesta categoria.
+              </p>
+              <button
+                onClick={() => setSelectedCategory('todos')}
+                className="text-stone-600 hover:text-stone-900 font-light underline"
+              >
+                Ver todos os produtos
+              </button>
+            </div>
           </div>
-        )}
+        ) : null}
 
         {/* Bottom CTA */}
         <div className="text-center">

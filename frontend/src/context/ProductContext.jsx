@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { productsAPI } from '../services/api';
 
 // Criar o contexto
@@ -30,18 +29,16 @@ export const ProductProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [categories] = useState(categoriesData);
 
-  // Cache em memória para detalhes de produtos
-  const productDetailsCache = useRef({});
-
   // Cache para evitar requests desnecessários
   const [cache, setCache] = useState({
     allProducts: null,
     popularProducts: null,
+    productDetails: new Map(), // Cache para produtos individuais
     lastFetch: null
   });
 
-  // Função para buscar todos os produtos
-  const fetchProducts = async (params = {}, useCache = true) => {
+  // Função para buscar todos os produtos - estabilizada com useCallback
+  const fetchProducts = useCallback(async (params = {}, useCache = true) => {
     // Verificar cache (válido por 5 minutos)
     const cacheKey = JSON.stringify(params);
     const cacheValid = cache.lastFetch && (Date.now() - cache.lastFetch < 5 * 60 * 1000);
@@ -77,14 +74,19 @@ export const ProductProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [cache.lastFetch, cache.allProducts]);
 
-  // Função para buscar produto por ID/slug
+  // Função para buscar produto por ID/slug - estabilizada com useCallback
   const getProductById = useCallback(async (identifier) => {
-
-    // Retornar do cache se já buscado anteriormente
-    if (productDetailsCache.current[identifier]) {
-      return productDetailsCache.current[identifier];
+    // Verificar cache primeiro
+    if (cache.productDetails.has(identifier)) {
+      const cachedProduct = cache.productDetails.get(identifier);
+      const cacheTime = cachedProduct.timestamp;
+      const isValid = Date.now() - cacheTime < 5 * 60 * 1000; // 5 minutos
+      
+      if (isValid) {
+        return cachedProduct.data;
+      }
     }
 
     setLoading(true);
@@ -93,10 +95,16 @@ export const ProductProvider = ({ children }) => {
     try {
       const response = await productsAPI.getProduct(identifier);
       const product = response.data.product;
-
-      // Armazenar no cache para futuras chamadas
-      productDetailsCache.current[identifier] = product;
-
+      
+      // Adicionar ao cache
+      setCache(prev => ({
+        ...prev,
+        productDetails: new Map(prev.productDetails).set(identifier, {
+          data: product,
+          timestamp: Date.now()
+        })
+      }));
+      
       return product;
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Produto não encontrado';
@@ -106,10 +114,10 @@ export const ProductProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [cache.productDetails]);
 
-  // Função para buscar produtos por categoria
-  const getProductsByCategory = async (category) => {
+  // Função para buscar produtos por categoria - estabilizada com useCallback
+  const getProductsByCategory = useCallback(async (category) => {
     if (category === 'todos') {
       return await fetchProducts();
     }
@@ -130,10 +138,10 @@ export const ProductProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchProducts]);
 
-  // Função para pesquisar produtos
-  const searchProducts = async (query, params = {}) => {
+  // Função para pesquisar produtos - estabilizada com useCallback
+  const searchProducts = useCallback(async (query, params = {}) => {
     if (!query || query.trim().length < 2) {
       return [];
     }
@@ -154,10 +162,10 @@ export const ProductProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Função para obter produtos populares
-  const getPopularProducts = async (limit = 6) => {
+  // Função para obter produtos populares - estabilizada com useCallback
+  const getPopularProducts = useCallback(async (limit = 6) => {
     // Verificar cache
     if (cache.popularProducts && cache.lastFetch && (Date.now() - cache.lastFetch < 5 * 60 * 1000)) {
       return cache.popularProducts;
@@ -186,31 +194,31 @@ export const ProductProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [cache.popularProducts, cache.lastFetch]);
 
-  // Função para obter produtos em stock
-  const getInStockProducts = async () => {
+  // Função para obter produtos em stock - estabilizada com useCallback
+  const getInStockProducts = useCallback(async () => {
     const allProducts = await fetchProducts({ inStock: true });
     return allProducts.filter(product => product.inStock);
-  };
+  }, [fetchProducts]);
 
   // Carregar produtos iniciais ao montar o componente
   useEffect(() => {
     fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchProducts]);
 
   // Função para limpar cache (útil após updates administrativos)
-  const clearCache = () => {
+  const clearCache = useCallback(() => {
     setCache({
       allProducts: null,
       popularProducts: null,
+      productDetails: new Map(),
       lastFetch: null
     });
-  };
+  }, []);
 
-  // Valor do contexto
-  const value = {
+  // Valor do contexto memoizado para evitar re-renders desnecessários
+  const value = useMemo(() => ({
     // Estado
     products,
     loading,
@@ -225,7 +233,19 @@ export const ProductProvider = ({ children }) => {
     getPopularProducts,
     getInStockProducts,
     clearCache
-  };
+  }), [
+    products,
+    loading,
+    error,
+    categories,
+    fetchProducts,
+    getProductById,
+    getProductsByCategory,
+    searchProducts,
+    getPopularProducts,
+    getInStockProducts,
+    clearCache
+  ]);
 
   return (
     <ProductContext.Provider value={value}>

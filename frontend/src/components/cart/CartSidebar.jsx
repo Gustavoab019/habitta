@@ -30,6 +30,32 @@ const CartSidebar = () => {
     navigate('/checkout');
   };
 
+  // Helper function to get cart item image URL safely
+  const getCartItemImageUrl = (item) => {
+    // First try to get from images array
+    if (item.images && item.images.length > 0) {
+      const firstImage = item.images[0];
+      // Handle both object format {url: string} and direct string format
+      if (typeof firstImage === 'object' && firstImage.url) {
+        return firstImage.url;
+      } else if (typeof firstImage === 'string') {
+        return firstImage;
+      }
+    }
+    
+    // Fallback to other image properties
+    if (item.image) {
+      return item.image;
+    }
+    
+    if (item.mainImage) {
+      return item.mainImage;
+    }
+    
+    // Final fallback to default image
+    return 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80';
+  };
+
   return (
     <>
       {/* Overlay */}
@@ -90,9 +116,12 @@ const CartSidebar = () => {
                     {/* Product Image */}
                     <div className="w-20 h-20 bg-stone-100 rounded overflow-hidden flex-shrink-0">
                       <img
-                        src={item.images?.[0] || item.image}
+                        src={getCartItemImageUrl(item)}
                         alt={item.name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80';
+                        }}
                       />
                     </div>
 
@@ -105,11 +134,12 @@ const CartSidebar = () => {
                         <div className="text-xs text-stone-500 font-light mb-1">
                           <span className="bg-stone-100 px-2 py-1 rounded">
                             {item.measurements.width}×{item.measurements.height}cm
+                            {item.measurements.panels > 1 && ` (${item.measurements.panels} painéis)`}
                           </span>
                         </div>
                       )}
                       <p className="text-xs text-stone-500 font-light mb-2">
-                        {item.material}
+                        {item.material || 'Premium'}
                       </p>
                       <p className="text-base font-medium text-stone-900">
                         {formatPrice(item.calculatedPrice || item.price)}
@@ -123,6 +153,7 @@ const CartSidebar = () => {
                       <button
                         onClick={() => removeItem(item.customId || item.id)}
                         className="text-stone-400 hover:text-red-500 transition-colors duration-200"
+                        title="Remover item"
                       >
                         <Trash2 className="w-4 h-4" strokeWidth={1} />
                       </button>
@@ -133,6 +164,7 @@ const CartSidebar = () => {
                           onClick={() => updateQuantity(item.customId || item.id, item.quantity - 1)}
                           className="p-1 hover:bg-stone-100 transition-colors duration-200"
                           disabled={item.quantity <= 1}
+                          title="Diminuir quantidade"
                         >
                           <Minus className="w-4 h-4 text-stone-600" strokeWidth={1} />
                         </button>
@@ -142,6 +174,7 @@ const CartSidebar = () => {
                         <button
                           onClick={() => updateQuantity(item.customId || item.id, item.quantity + 1)}
                           className="p-1 hover:bg-stone-100 transition-colors duration-200"
+                          title="Aumentar quantidade"
                         >
                           <Plus className="w-4 h-4 text-stone-600" strokeWidth={1} />
                         </button>

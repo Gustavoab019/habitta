@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -27,21 +27,25 @@ const ProductDetail = () => {
   const { addItem } = useCart();
 
   const [product, setProduct] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
+
+  // Função para buscar produto com controle de loading local
+  const fetchProduct = useCallback(async () => {
+    if (!id) return;
+
+    try {
+      setFetchError(null);
+      const data = await getProductById(id);
+      setProduct(data);
+    } catch (error) {
+      console.error('Erro ao carregar produto:', error);
+      setFetchError('Erro ao carregar produto. Tente novamente.');
+    }
+  }, [id, getProductById]);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchProduct = async () => {
-      const data = await getProductById(id);
-      if (isMounted) setProduct(data);
-    };
-
     fetchProduct();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [id, getProductById]);
+  }, [fetchProduct]);
   
   // Estados do produto
   const [selectedImage, setSelectedImage] = useState(0);
@@ -62,6 +66,13 @@ const ProductDetail = () => {
   const [calculatedPrice, setCalculatedPrice] = useState(0);
   const [area, setArea] = useState(0);
   const [showMeasurementGuide, setShowMeasurementGuide] = useState(false);
+
+  // Reset selectedImage when product changes
+  useEffect(() => {
+    if (product && product.images && product.images.length > 0) {
+      setSelectedImage(0);
+    }
+  }, [product]);
 
   // Cálculo automático do preço
   useEffect(() => {
@@ -111,19 +122,49 @@ const ProductDetail = () => {
       measurements,
       calculatedPrice,
       area,
-      customId: `${product.id}-${Date.now()}`, // ID único para o carrinho
+      customId: `${product._id || product.id}-${Date.now()}`, // ID único para o carrinho
       price: calculatedPrice // Preço calculado substitui o preço base
     };
 
     addItem(cartItem);
   };
 
+  // Funções de navegação de imagens com validação
   const nextImage = () => {
-    setSelectedImage((prev) => (prev + 1) % product.images.length);
+    if (product && product.images && product.images.length > 0) {
+      setSelectedImage((prev) => (prev + 1) % product.images.length);
+    }
   };
 
   const prevImage = () => {
-    setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length);
+    if (product && product.images && product.images.length > 0) {
+      setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length);
+    }
+  };
+
+  // Helper function to get image URL safely
+  const getImageUrl = (imageIndex = 0) => {
+    if (!product || !product.images || !product.images[imageIndex]) {
+      return 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=90';
+    }
+    
+    const image = product.images[imageIndex];
+    // Handle both object format {url: string} and direct string format
+    return typeof image === 'object' ? image.url : image;
+  };
+
+  // Helper function to get image alt text
+  const getImageAlt = (imageIndex = 0) => {
+    if (!product || !product.images || !product.images[imageIndex]) {
+      return product?.name || 'Produto';
+    }
+    
+    const image = product.images[imageIndex];
+    if (typeof image === 'object' && image.alt) {
+      return image.alt;
+    }
+    
+    return `${product.name} ${imageIndex + 1}`;
   };
 
   if (loading || !product) {
@@ -133,6 +174,23 @@ const ProductDetail = () => {
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-900 mx-auto mb-4"></div>
             <p className="text-stone-600 font-light">Carregando produto...</p>
+          </div>
+        ) : fetchError ? (
+          <div className="text-center">
+            <h2 className="text-2xl font-light text-stone-900 mb-4">Erro ao carregar produto</h2>
+            <p className="text-stone-600 mb-4">{fetchError}</p>
+            <button 
+              onClick={fetchProduct}
+              className="bg-stone-900 text-white px-6 py-2 font-light tracking-wide hover:bg-stone-800 transition-all duration-300 mr-4"
+            >
+              Tentar Novamente
+            </button>
+            <Link 
+              to="/produtos" 
+              className="text-stone-600 hover:text-stone-900 font-light"
+            >
+              ← Voltar aos produtos
+            </Link>
           </div>
         ) : (
           <div className="text-center">
@@ -179,13 +237,16 @@ const ProductDetail = () => {
             {/* Main Image */}
             <div className="relative bg-stone-100 aspect-square overflow-hidden">
               <img 
-                src={product.images[selectedImage]} 
-                alt={product.name}
+                src={getImageUrl(selectedImage)}
+                alt={getImageAlt(selectedImage)}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.src = 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=90';
+                }}
               />
               
               {/* Image Navigation */}
-              {product.images.length > 1 && (
+              {product.images && product.images.length > 1 && (
                 <>
                   <button
                     onClick={prevImage}
@@ -211,8 +272,8 @@ const ProductDetail = () => {
             </div>
 
             {/* Thumbnail Images */}
-            {product.images.length > 1 && (
-              <div className="flex space-x-4">
+            {product.images && product.images.length > 1 && (
+              <div className="flex space-x-4 overflow-x-auto">
                 {product.images.map((image, index) => (
                   <button
                     key={index}
@@ -222,9 +283,12 @@ const ProductDetail = () => {
                     }`}
                   >
                     <img 
-                      src={image} 
-                      alt={`${product.name} ${index + 1}`}
+                      src={getImageUrl(index)}
+                      alt={getImageAlt(index)}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.src = 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80';
+                      }}
                     />
                   </button>
                 ))}
@@ -276,10 +340,10 @@ const ProductDetail = () => {
             </div>
 
             {/* Color Selection */}
-            {product.colors && (
+            {product.colors && product.colors.length > 0 && (
               <div>
-                <h3 className="text-lg font-light text-stone-900 mb-4">Cor disponível:</h3>
-                <div className="flex space-x-3">
+                <h3 className="text-lg font-light text-stone-900 mb-4">Cores disponíveis:</h3>
+                <div className="flex flex-wrap gap-3">
                   {product.colors.map((color, index) => (
                     <button
                       key={index}
@@ -290,7 +354,9 @@ const ProductDetail = () => {
                           : 'border-stone-300 hover:border-stone-600'
                       }`}
                     >
-                      <span className="text-sm font-light">{color}</span>
+                      <span className="text-sm font-light">
+                        {typeof color === 'object' ? color.name : color}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -504,29 +570,54 @@ const ProductDetail = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Largura máxima:</span>
-                  <span>500cm</span>
+                  <span>{product.dimensions?.maxWidth || 500}cm</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Altura máxima:</span>
-                  <span>350cm</span>
+                  <span>{product.dimensions?.maxHeight || 350}cm</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Manutenção:</span>
-                  <span>Lavagem a seco</span>
+                  <span>{product.specifications?.maintenance || 'Lavagem a seco'}</span>
                 </div>
+                {product.specifications?.fireResistant && (
+                  <div className="flex justify-between">
+                    <span>Resistente ao fogo:</span>
+                    <span className="text-green-600">Sim</span>
+                  </div>
+                )}
               </div>
             </div>
 
             <div>
               <h3 className="text-xl font-light text-stone-900 mb-6">Características</h3>
               <ul className="space-y-3 text-stone-600 font-light">
-                {product.features?.map((feature, index) => (
-                  <li key={index} className="flex items-center">
-                    <Check className="w-4 h-4 text-green-600 mr-3" strokeWidth={1} />
-                    {feature}
-                  </li>
-                )) || (
-                  <li className="text-stone-500">Características não disponíveis</li>
+                {product.features && product.features.length > 0 ? (
+                  product.features.map((feature, index) => (
+                    <li key={index} className="flex items-center">
+                      <Check className="w-4 h-4 text-green-600 mr-3 flex-shrink-0" strokeWidth={1} />
+                      <span>{feature}</span>
+                    </li>
+                  ))
+                ) : (
+                  <>
+                    <li className="flex items-center">
+                      <Check className="w-4 h-4 text-green-600 mr-3" strokeWidth={1} />
+                      Qualidade hoteleira premium
+                    </li>
+                    <li className="flex items-center">
+                      <Check className="w-4 h-4 text-green-600 mr-3" strokeWidth={1} />
+                      Resistente e durável
+                    </li>
+                    <li className="flex items-center">
+                      <Check className="w-4 h-4 text-green-600 mr-3" strokeWidth={1} />
+                      Fácil manutenção
+                    </li>
+                    <li className="flex items-center">
+                      <Check className="w-4 h-4 text-green-600 mr-3" strokeWidth={1} />
+                      Instalação profissional inclusa
+                    </li>
+                  </>
                 )}
               </ul>
             </div>
@@ -535,21 +626,21 @@ const ProductDetail = () => {
               <h3 className="text-xl font-light text-stone-900 mb-6">Entrega e Instalação</h3>
               <div className="space-y-4 text-stone-600 font-light">
                 <div className="flex items-start">
-                  <Truck className="w-5 h-5 text-stone-500 mr-3 mt-0.5" strokeWidth={1} />
+                  <Truck className="w-5 h-5 text-stone-500 mr-3 mt-0.5 flex-shrink-0" strokeWidth={1} />
                   <div>
                     <p className="font-medium">Entrega gratuita</p>
                     <p className="text-sm">Lisboa e Porto: 3-5 dias úteis</p>
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <Home className="w-5 h-5 text-stone-500 mr-3 mt-0.5" strokeWidth={1} />
+                  <Home className="w-5 h-5 text-stone-500 mr-3 mt-0.5 flex-shrink-0" strokeWidth={1} />
                   <div>
                     <p className="font-medium">Instalação profissional</p>
                     <p className="text-sm">Incluída no preço</p>
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <Ruler className="w-5 h-5 text-stone-500 mr-3 mt-0.5" strokeWidth={1} />
+                  <Ruler className="w-5 h-5 text-stone-500 mr-3 mt-0.5 flex-shrink-0" strokeWidth={1} />
                   <div>
                     <p className="font-medium">Medição gratuita</p>
                     <p className="text-sm">Agendamento flexível</p>
